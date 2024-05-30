@@ -8,6 +8,7 @@ import com.wich0D.BibliotecaAPI.service.Conversor;
 
 import java.sql.SQLOutput;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main {
     private final String URL_BASE = "https://gutendex.com/books/";
@@ -114,11 +115,6 @@ public class Main {
         }else{
             System.out.println("Opcion no disponible");
         }
-
-
-
-
-
     }
 
     private void showSearch() {
@@ -135,12 +131,16 @@ public class Main {
         var url = URL_BASE+"?search="+name.replace(" ","+");
         var json = consumeAPI.obtainJsonFromAPI(url);
         Data data = conversor.obtainData(json,Data.class);
+        if (data.searchResults() == null || data.searchResults().isEmpty()){
+            System.out.println("El libro que buscas no existe o no se encuentra");
+            return null;
+        }
         Optional<BookData> searchResult = data.searchResults().stream().findFirst();
         if(searchResult.isPresent()){
             var result = searchResult.get();
-            return result;
+                return result;
         }
-        System.out.println("El libro que buscas no existe o no se encuentra");
+        //System.out.println("El libro que buscas no existe o no se encuentra");
         return null;
     }
     private AuthorData getAuthorData(String name){
@@ -164,13 +164,22 @@ public class Main {
         System.out.println(" \n Ingresa el Titulo del libro que estas buscando: ");
         var title = key.nextLine();
         var titleConverted = getData(title);
-        Book newBook = new Book(titleConverted);
-        var authorData = getAuthorData(title);
-        Author newAuthor = new Author(authorData);
-        if (newBook != null){
-            repository.save(newBook);
-            authorRepository.save(newAuthor);
-            System.out.println(newBook.toString());
+        //Check if book exists
+        if (titleConverted != null){
+            List<Book> booksSaved = repository.findAll();
+            List<String> titles = booksSaved.stream().map(Book::getName).collect(Collectors.toList());
+            if (titles.contains(title)){
+                Book newBook = new Book(titleConverted);
+                var authorData = getAuthorData(title);
+                Author newAuthor = new Author(authorData);
+                repository.save(newBook);
+                authorRepository.save(newAuthor);
+                System.out.println(newBook.toString());
+            }else{
+                System.out.println("Ya buscaste ese libro");
+            }
+
+
         }
     }
 }
